@@ -30,7 +30,6 @@
     <script>
         const input = document.getElementById('rutInput');
         const error = document.getElementById('error');
-        // REEMPLAZA ESTA URL CON LA TUYA DE GOOGLE APPS SCRIPT
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSyrf1J7ad4nY9aiKEQmOE6PTPODf3Wlvlpep2JOvsjpHqvDtc4b0CZ3--mJpEZol/exec";
 
         input.addEventListener('blur', async () => {
@@ -46,11 +45,24 @@
                     error.style.display = "none";
                     input.value = data.rutFormateado;
                     
-                    // Avisar a Jotform que el dato es correcto (si decides usar un campo oculto)
-                    window.parent.postMessage({type: 'rutValido', value: data.rutFormateado}, "*");
+                    // ESTA ES LA PARTE QUE CAMBIÓ:
+                    // Enviamos la instrucción exacta para que Jotform llene el campo 'RUT_VALIDADO'
+                    window.parent.postMessage({
+                        type: 'setInputValue', 
+                        fieldName: 'RUT_VALIDADO', 
+                        value: data.rutFormateado
+                    }, "*");
+
                 } else {
                     input.style.borderColor = "#d93025";
                     error.style.display = "block";
+
+                    // Si es inválido, borramos el campo oculto en Jotform para que el botón Submit se bloquee
+                    window.parent.postMessage({
+                        type: 'setInputValue', 
+                        fieldName: 'RUT_VALIDADO', 
+                        value: '' 
+                    }, "*");
                 }
             } catch (e) {
                 console.error("Error al validar:", e);
