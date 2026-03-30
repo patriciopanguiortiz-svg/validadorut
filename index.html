@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input:focus { outline: none; border-color: #007bff; }
+        .error-msg { 
+            color: #d93025; 
+            font-size: 12px; 
+            margin-top: 5px; 
+            display: none; 
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="rutInput" placeholder="Ej: 12.345.678-9" autocomplete="off">
+    <div id="error" class="error-msg">RUT no válido (algoritmo Módulo 11)</div>
+
+    <script>
+        const input = document.getElementById('rutInput');
+        const error = document.getElementById('error');
+        // REEMPLAZA ESTA URL CON LA TUYA DE GOOGLE APPS SCRIPT
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSyrf1J7ad4nY9aiKEQmOE6PTPODf3Wlvlpep2JOvsjpHqvDtc4b0CZ3--mJpEZol/exec";
+
+        input.addEventListener('blur', async () => {
+            const rut = input.value.trim();
+            if (!rut) return;
+
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?rut=${rut}`);
+                const data = await response.json();
+
+                if (data.valido) {
+                    input.style.borderColor = "#28a745";
+                    error.style.display = "none";
+                    input.value = data.rutFormateado;
+                    
+                    // Avisar a Jotform que el dato es correcto (si decides usar un campo oculto)
+                    window.parent.postMessage({type: 'rutValido', value: data.rutFormateado}, "*");
+                } else {
+                    input.style.borderColor = "#d93025";
+                    error.style.display = "block";
+                }
+            } catch (e) {
+                console.error("Error al validar:", e);
+            }
+        });
+    </script>
+</body>
+</html>
