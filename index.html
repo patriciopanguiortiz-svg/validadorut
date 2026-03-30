@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 5px; overflow: hidden; }
         input { 
             width: 100%; 
             padding: 12px; 
@@ -11,9 +11,12 @@
             border-radius: 6px; 
             font-size: 16px; 
             box-sizing: border-box;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
+            outline: none;
         }
-        input:focus { outline: none; border-color: #007bff; }
+        /* Color azul al estar escribiendo */
+        input:focus { border-color: #007bff; }
+        /* Mensaje de error */
         .error-msg { 
             color: #d93025; 
             font-size: 12px; 
@@ -24,14 +27,34 @@
     </style>
 </head>
 <body>
-    <input type="text" id="rutInput" placeholder="Ej: 12.345.678-9" autocomplete="off">
-    <div id="error" class="error-msg">RUT no válido (algoritmo Módulo 11)</div>
+    <input type="text" id="rutInput" placeholder="12.345.678-9" maxlength="12">
+    <div id="error" class="error-msg">⚠️ RUT incorrecto. Revisa los números.</div>
 
     <script>
         const input = document.getElementById('rutInput');
         const error = document.getElementById('error');
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSyrf1J7ad4nY9aiKEQmOE6PTPODf3Wlvlpep2JOvsjpHqvDtc4b0CZ3--mJpEZol/exec";
 
+        // 1. FORMATEO AUTOMÁTICO MIENTRAS ESCRIBE
+        input.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/[^0-9kK]/g, ''); // Solo números y K
+            
+            if (value.length > 1) {
+                let cuerpo = value.slice(0, -1);
+                let dv = value.slice(-1).toUpperCase();
+                
+                // Formatear con puntos
+                let format = "";
+                while (cuerpo.length > 3) {
+                    format = "." + cuerpo.slice(-3) + format;
+                    cuerpo = cuerpo.slice(0, -3);
+                }
+                format = cuerpo + format;
+                e.target.value = format + "-" + dv;
+            }
+        });
+
+        // 2. VALIDACIÓN AL SALIR DEL CAMPO (BLUR)
         input.addEventListener('blur', async () => {
             const rut = input.value.trim();
             if (!rut) return;
@@ -41,23 +64,22 @@
                 const data = await response.json();
 
                 if (data.valido) {
-                    input.style.borderColor = "#28a745";
+                    // SI ES VÁLIDO
+                    input.style.borderColor = "#28a745"; // Verde
                     error.style.display = "none";
-                    input.value = data.rutFormateado;
                     
-                    // ESTA ES LA PARTE QUE CAMBIÓ:
-                    // Enviamos la instrucción exacta para que Jotform llene el campo 'RUT_VALIDADO'
+                    // Avisar a Jotform para que aparezca el botón Submit
                     window.parent.postMessage({
                         type: 'setInputValue', 
                         fieldName: 'RUT_VALIDADO', 
                         value: data.rutFormateado
                     }, "*");
-
                 } else {
-                    input.style.borderColor = "#d93025";
+                    // SI ES INVÁLIDO
+                    input.style.borderColor = "#d93025"; // Rojo
                     error.style.display = "block";
-
-                    // Si es inválido, borramos el campo oculto en Jotform para que el botón Submit se bloquee
+                    
+                    // Limpiar Jotform para que el botón Submit se oculte
                     window.parent.postMessage({
                         type: 'setInputValue', 
                         fieldName: 'RUT_VALIDADO', 
@@ -65,7 +87,7 @@
                     }, "*");
                 }
             } catch (e) {
-                console.error("Error al validar:", e);
+                console.error("Error:", e);
             }
         });
     </script>
